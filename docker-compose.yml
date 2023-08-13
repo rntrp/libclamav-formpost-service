@@ -1,0 +1,9 @@
+version: "3.7"
+services:
+  web:
+    container_name: libclamav-formpost-service
+    image: libclamav-formpost-service:latest
+    restart: "no"
+    build: .
+    ports:
+      - "8000:8000"

@@ -1,0 +1,21 @@
+[package]
+name = "libclamav-formpost-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = {version = "0.6.20", features = ["multipart"]}
+axum-prometheus = "0.4.0"
+bitflags = "2.3.3"
+config = {version = "0.13", features = ["toml", "yaml"]}
+hyper = {version = "0.14.27", features = ["full"] }
+libc = "0.2"
+serde = {version = "1.0.183", features = ["derive"]}
+tempfile = "3"
+tokio = {version = "1.31.0", features = ["full"]}
+tower-http = {version = "0.4", features = ["trace"]}
+tracing = "0.1"
+tracing-subscriber = {version = "0.3.17", features = ["env-filter"]}
+
+[build-dependencies]
+pkg-config = "0.3"
