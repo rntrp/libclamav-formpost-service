@@ -1,5 +1,5 @@
 # libclamav-formpost-service
-Antivirus formpost microservice based on [libclamav](https://github.com/Cisco-Talos/clamav), written in Rust.
+Antivirus formpost microservice based on [libclamav](https://github.com/Cisco-Talos/clamav), written in Rust using [Axum](https://github.com/tokio-rs/axum).
 
 Parts of the code were taken from [clamav-rust](https://github.com/zaddach/clamav-rs) by Jonas Zaddach. Kudos to Jonas for FFI bindings and Settings implementation based on [bitflags](https://github.com/bitflags/bitflags).
 
