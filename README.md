@@ -1,3 +1,6 @@
+[![Release](https://img.shields.io/github/v/release/rntrp/libclamav-formpost-service)](https://github.com/rntrp/libclamav-formpost-service/releases)
+[![Docker Image](https://img.shields.io/docker/image-size/rntrp/libclamav-formpost-service/latest?logo=docker)](https://hub.docker.com/r/rntrp/libclamav-formpost-service)
+
 # libclamav-formpost-service
 Antivirus formpost microservice based on [libclamav](https://github.com/Cisco-Talos/clamav), written in Rust using [Axum](https://github.com/tokio-rs/axum).
 
