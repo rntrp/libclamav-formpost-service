@@ -1,4 +1,4 @@
-[![Release](https://img.shields.io/github/v/release/rntrp/libclamav-formpost-service)](https://github.com/rntrp/libclamav-formpost-service/releases)
+[![Release](https://img.shields.io/github/v/release-pre/rntrp/libclamav-formpost-service)](https://github.com/rntrp/libclamav-formpost-service/releases)
 [![Docker Image](https://img.shields.io/docker/image-size/rntrp/libclamav-formpost-service/latest?logo=docker)](https://hub.docker.com/r/rntrp/libclamav-formpost-service)
 
 # libclamav-formpost-service
