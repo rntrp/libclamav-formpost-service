@@ -1,4 +1,4 @@
-use crate::{av::AvContext, av_engine::AvScanResult};
+use crate::{app_config::AppConfig, av::AvContext, av_engine::AvScanResult};
 use std::{io::Write, sync::Arc};
 
 use axum::{
@@ -39,6 +39,23 @@ const INDEX_HTML: &'static [u8] = include_bytes!("index.html");
 
 pub async fn index_html() -> Html<&'static [u8]> {
     Html(INDEX_HTML)
+}
+
+type ShutdownTx = tokio::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>;
+
+pub async fn shutdown(
+    Extension(cfg): Extension<Arc<AppConfig>>,
+    Extension(tx): Extension<Arc<ShutdownTx>>,
+) -> StatusCode {
+    match cfg.enable_shutdown_endpoint {
+        false => StatusCode::NOT_FOUND,
+        true => {
+            let ptr = Arc::clone(&tx);
+            let mut lock = ptr.lock().await;
+            lock.take().map(|sender| sender.send(()));
+            StatusCode::ACCEPTED
+        }
+    }
 }
 
 pub async fn upload(
