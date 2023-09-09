@@ -10,7 +10,7 @@ bitflags = "2.3.3"
 config = {version = "0.13", features = ["toml", "yaml"]}
 hyper = {version = "0.14.27", features = ["full"] }
 libc = "0.2"
-serde = {version = "1.0.185", features = ["derive"]}
+serde = {version = "1.0.188", features = ["derive"]}
 tempfile = "3"
 tokio = {version = "1.32.0", features = ["full"]}
 tower-http = {version = "0.4", features = ["trace"]}
