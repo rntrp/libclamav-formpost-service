@@ -63,12 +63,12 @@ pub async fn upload(
     mut mp: Multipart,
 ) -> Result<Json<AvResponse>, (StatusCode, String)> {
     let mut results = Vec::new();
-    while let Some(mut field) = mp.next_field().await.map_err(map_mp_error_to_403)? {
+    while let Some(mut field) = mp.next_field().await.map_err(map_mp_error_to_400)? {
         let mut tmp = tempfile::Builder::new()
             .rand_bytes(12)
             .tempfile()
             .map_err(map_io_error_to_500)?;
-        while let Some(chunk) = field.chunk().await.map_err(map_mp_error_to_403)? {
+        while let Some(chunk) = field.chunk().await.map_err(map_mp_error_to_400)? {
             tmp.write(&chunk).map_err(map_io_error_to_500)?;
         }
         tmp.as_file().sync_data().map_err(map_io_error_to_500)?;
@@ -126,7 +126,7 @@ fn map_result(ctx: &AvContext, field: &Field<'_>, tmp: &tempfile::NamedTempFile)
     }
 }
 
-fn map_mp_error_to_403(err: axum::extract::multipart::MultipartError) -> (StatusCode, String) {
+fn map_mp_error_to_400(err: axum::extract::multipart::MultipartError) -> (StatusCode, String) {
     (StatusCode::BAD_REQUEST, err.to_string())
 }
 
