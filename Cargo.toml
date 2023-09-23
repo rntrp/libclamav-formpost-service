@@ -1,12 +1,12 @@
 [package]
 name = "libclamav-formpost-service"
-version = "1.0.3-v20230917"
+version = "1.0.3-v20230923"
 edition = "2021"
 
 [dependencies]
 axum = {version = "0.6.20", features = ["multipart"]}
 axum-prometheus = "0.4.0"
-bitflags = "2.3.3"
+bitflags = "2.4.0"
 config = {version = "0.13", features = ["toml", "yaml"]}
 hyper = {version = "0.14.27", features = ["full"] }
 libc = "0.2"
