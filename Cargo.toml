@@ -1,6 +1,6 @@
 [package]
 name = "libclamav-formpost-service"
-version = "1.0.3-v20230923"
+version = "1.0.3-v20230929"
 edition = "2021"
 
 [dependencies]
