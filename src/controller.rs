@@ -139,7 +139,7 @@ fn map_result(
         }),
         Err(err) => Err(std::io::Error::new(
             std::io::ErrorKind::Other,
-            format!("[{}] {}", err.code(), err.string_error()),
+            format!("{err}"),
         )),
     }
 }

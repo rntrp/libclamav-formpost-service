@@ -59,7 +59,7 @@ impl AvError {
 
 impl fmt::Display for AvError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "cl_error {}: {}", self.code, self.string_error())
+        write!(f, "cl_error {}: {}", self.code(), self.string_error())
     }
 }
 
