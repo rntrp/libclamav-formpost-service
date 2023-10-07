@@ -34,10 +34,6 @@ pub struct AvResult {
     content_type: Option<String>,
     result: &'static str,
     signature: Option<String>,
-    #[serde(rename = "errorCode")]
-    error_code: Option<u32>,
-    #[serde(rename = "errorMessage")]
-    error_msg: Option<String>,
 }
 
 const INDEX_HTML: &'static [u8] = include_bytes!("index.html");
@@ -84,15 +80,18 @@ pub async fn upload(
             sha256.update(&chunk);
         }
         tmp.as_file().sync_data().map_err(map_io_error_to_500)?;
-        results.push(map_result(
-            &ctx,
-            &field,
-            &tmp,
-            size,
-            format!("{:08x?}", crc32.finalize()),
-            format!("{:032x?}", md5.compute()),
-            hex::encode(sha256.finalize()),
-        ));
+        results.push(
+            map_result(
+                &ctx,
+                &field,
+                &tmp,
+                size,
+                format!("{:08x?}", crc32.finalize()),
+                format!("{:032x?}", md5.compute()),
+                hex::encode(sha256.finalize()),
+            )
+            .map_err(map_io_error_to_500)?,
+        );
     }
     Ok(Json(AvResponse {
         av_version: ctx.clamav_version.to_owned(),
@@ -111,15 +110,12 @@ fn map_result(
     crc32: String,
     md5: String,
     sha256: String,
-) -> AvResult {
+) -> Result<AvResult, std::io::Error> {
     let name = field.name().map(|f| f.to_string());
-    let path = tmp.path().to_str();
-    let content_type = path.and_then(|p| match infer::get_from_path(p) {
-        Ok(t) => t.map(|t| t.mime_type().to_string()),
-        Err(_) => None,
-    });
-    match path.map(|p| ctx.engine.scan(p, &mut ctx.settings.to_owned())) {
-        Some(Ok(r)) => AvResult {
+    let path = tmp.path().to_str().expect("temp path should be valid");
+    let content_type = infer::get_from_path(path)?.map(|t| t.mime_type().to_string());
+    match ctx.engine.scan(path, &mut ctx.settings.to_owned()) {
+        Ok(r) => Ok(AvResult {
             name,
             size,
             crc32,
@@ -136,33 +132,11 @@ fn map_result(
                 AvScanResult::Whitelisted => None,
                 AvScanResult::Virus(sig) => Some(sig),
             },
-            error_code: None,
-            error_msg: None,
-        },
-        Some(Err(err)) => AvResult {
-            name,
-            size,
-            crc32,
-            md5,
-            sha256,
-            content_type,
-            result: "ERROR",
-            signature: None,
-            error_code: Some(err.code()),
-            error_msg: Some(err.string_error()),
-        },
-        None => AvResult {
-            name,
-            size,
-            crc32,
-            md5,
-            sha256,
-            content_type,
-            result: "ERROR",
-            signature: None,
-            error_code: None,
-            error_msg: None,
-        },
+        }),
+        Err(err) => Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("[{}] {}", err.code(), err.string_error()),
+        )),
     }
 }
 
