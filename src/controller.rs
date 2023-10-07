@@ -6,6 +6,7 @@ use axum::{
     response::Html,
     Extension, Json,
 };
+use chrono::{SecondsFormat, Utc};
 use hyper::StatusCode;
 use serde::Serialize;
 use sha2::Digest;
@@ -32,6 +33,8 @@ pub struct AvResult {
     sha256: String,
     #[serde(rename = "contentType")]
     content_type: Option<String>,
+    #[serde(rename = "dateScanned")]
+    date_scanned: String,
     result: &'static str,
     signature: Option<String>,
 }
@@ -122,6 +125,7 @@ fn map_result(
             md5,
             sha256,
             content_type,
+            date_scanned: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
             result: match r {
                 AvScanResult::Clean => "CLEAN",
                 AvScanResult::Whitelisted => "WHITELISTED",

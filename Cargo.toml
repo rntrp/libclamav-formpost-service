@@ -7,6 +7,7 @@ edition = "2021"
 axum = {version = "0.6.20", features = ["multipart"]}
 axum-prometheus = "0.4.0"
 bitflags = "2.4.0"
+chrono = "0.4"
 config = {version = "0.13", features = ["toml", "yaml"]}
 crc32fast = "1.3.2"
 hex = "0.4"
