@@ -8,6 +8,7 @@ use axum::{
 };
 use hyper::StatusCode;
 use serde::Serialize;
+use sha2::Digest;
 
 #[derive(Serialize)]
 pub struct AvResponse {
@@ -25,6 +26,10 @@ pub struct AvResponse {
 #[derive(Serialize)]
 pub struct AvResult {
     name: Option<String>,
+    size: u64,
+    crc32: String,
+    md5: String,
+    sha256: String,
     #[serde(rename = "contentType")]
     content_type: Option<String>,
     result: &'static str,
@@ -68,11 +73,26 @@ pub async fn upload(
             .rand_bytes(12)
             .tempfile()
             .map_err(map_io_error_to_500)?;
+        let mut size = 0;
+        let mut crc32 = crc32fast::Hasher::new();
+        let mut md5 = md5::Context::new();
+        let mut sha256 = sha2::Sha256::new();
         while let Some(chunk) = field.chunk().await.map_err(map_mp_error_to_400)? {
-            tmp.write(&chunk).map_err(map_io_error_to_500)?;
+            size += tmp.write(&chunk).map_err(map_io_error_to_500)? as u64;
+            crc32.update(&chunk);
+            md5.consume(&chunk);
+            sha256.update(&chunk);
         }
         tmp.as_file().sync_data().map_err(map_io_error_to_500)?;
-        results.push(map_result(&ctx, &field, &tmp));
+        results.push(map_result(
+            &ctx,
+            &field,
+            &tmp,
+            size,
+            format!("{:08x?}", crc32.finalize()),
+            format!("{:032x?}", md5.compute()),
+            hex::encode(sha256.finalize()),
+        ));
     }
     Ok(Json(AvResponse {
         av_version: ctx.clamav_version.to_owned(),
@@ -83,16 +103,28 @@ pub async fn upload(
     }))
 }
 
-fn map_result(ctx: &AvContext, field: &Field<'_>, tmp: &tempfile::NamedTempFile) -> AvResult {
+fn map_result(
+    ctx: &AvContext,
+    field: &Field<'_>,
+    tmp: &tempfile::NamedTempFile,
+    size: u64,
+    crc32: String,
+    md5: String,
+    sha256: String,
+) -> AvResult {
     let name = field.name().map(|f| f.to_string());
-    let content_type = field.content_type().map(|c| c.to_string());
-    let scan_result = tmp
-        .path()
-        .to_str()
-        .map(|p| ctx.engine.scan(p, &mut ctx.settings.to_owned()));
-    match scan_result {
+    let path = tmp.path().to_str();
+    let content_type = path.and_then(|p| match infer::get_from_path(p) {
+        Ok(t) => t.map(|t| t.mime_type().to_string()),
+        Err(_) => None,
+    });
+    match path.map(|p| ctx.engine.scan(p, &mut ctx.settings.to_owned())) {
         Some(Ok(r)) => AvResult {
             name,
+            size,
+            crc32,
+            md5,
+            sha256,
             content_type,
             result: match r {
                 AvScanResult::Clean => "CLEAN",
@@ -109,6 +141,10 @@ fn map_result(ctx: &AvContext, field: &Field<'_>, tmp: &tempfile::NamedTempFile)
         },
         Some(Err(err)) => AvResult {
             name,
+            size,
+            crc32,
+            md5,
+            sha256,
             content_type,
             result: "ERROR",
             signature: None,
@@ -117,6 +153,10 @@ fn map_result(ctx: &AvContext, field: &Field<'_>, tmp: &tempfile::NamedTempFile)
         },
         None => AvResult {
             name,
+            size,
+            crc32,
+            md5,
+            sha256,
             content_type,
             result: "ERROR",
             signature: None,
