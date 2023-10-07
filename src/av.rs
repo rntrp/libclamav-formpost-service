@@ -1,12 +1,17 @@
-use std::error;
-use std::ffi::CStr;
-use std::fmt;
-use std::str;
-use std::sync::Once;
+use chrono::{DateTime, Utc};
+use std::{
+    error,
+    ffi::CStr,
+    fmt, str,
+    sync::Once,
+    time::{Duration, UNIX_EPOCH},
+};
 
-use crate::av_bindings::{self, cl_error_t, cl_strerror};
-use crate::av_engine::Engine;
-use crate::av_settings::AvSettings;
+use crate::{
+    av_bindings::{self, cl_error_t, cl_strerror},
+    av_engine::Engine,
+    av_settings::AvSettings,
+};
 
 fn init() -> Result<(), AvError> {
     static O: Once = Once::new();
@@ -74,7 +79,7 @@ pub struct AvContext {
     pub clamav_version: String,
     pub db_version: u32,
     pub db_sig_count: u32,
-    pub db_timestamp_sec: u32,
+    pub db_date: DateTime<Utc>,
     pub engine: Engine,
     pub settings: AvSettings,
 }
@@ -87,9 +92,9 @@ impl fmt::Display for AvContext {
                 "\tlibclamav version: {}\n",
                 "\tDB version: {}\n",
                 "\tDB signature count: {}\n",
-                "\tDB timestamp (sec): {}",
+                "\tDB date: {}",
             ),
-            self.clamav_version, self.db_version, self.db_sig_count, self.db_timestamp_sec,
+            self.clamav_version, self.db_version, self.db_sig_count, self.db_date,
         )
     }
 }
@@ -103,7 +108,9 @@ pub fn load_context() -> AvContext {
         clamav_version: version().unwrap(),
         db_version: engine.db_version().unwrap(),
         db_sig_count: stats.signo,
-        db_timestamp_sec: engine.db_timestamp().unwrap(),
+        db_date: DateTime::<Utc>::from(
+            UNIX_EPOCH + Duration::from_secs(engine.db_timestamp().unwrap() as u64),
+        ),
         engine,
         settings: AvSettings::default(),
     }

@@ -1,6 +1,3 @@
-use crate::{app_config::AppConfig, av::AvContext, av_engine::AvScanResult};
-use std::{io::Write, sync::Arc};
-
 use axum::{
     extract::{multipart::Field, Multipart},
     response::Html,
@@ -10,6 +7,9 @@ use chrono::{SecondsFormat, Utc};
 use hyper::StatusCode;
 use serde::Serialize;
 use sha2::Digest;
+use std::{io::Write, sync::Arc};
+
+use crate::{app_config::AppConfig, av::AvContext, av_engine::AvScanResult};
 
 #[derive(Serialize)]
 pub struct AvResponse {
@@ -19,8 +19,8 @@ pub struct AvResponse {
     db_version: u32,
     #[serde(rename = "dbSignatureCount")]
     db_sig_count: u32,
-    #[serde(rename = "dbTimestampSeconds")]
-    db_timestamp_sec: u32,
+    #[serde(rename = "dbDate")]
+    db_date: String,
     results: Vec<AvResult>,
 }
 
@@ -100,7 +100,7 @@ pub async fn upload(
         av_version: ctx.clamav_version.to_owned(),
         db_version: ctx.db_version,
         db_sig_count: ctx.db_sig_count,
-        db_timestamp_sec: ctx.db_timestamp_sec,
+        db_date: ctx.db_date.to_rfc3339_opts(SecondsFormat::Millis, true),
         results,
     }))
 }
@@ -144,10 +144,12 @@ fn map_result(
     }
 }
 
+#[inline]
 fn map_mp_error_to_400(err: axum::extract::multipart::MultipartError) -> (StatusCode, String) {
     (StatusCode::BAD_REQUEST, err.to_string())
 }
 
+#[inline]
 fn map_io_error_to_500(err: std::io::Error) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
 }
