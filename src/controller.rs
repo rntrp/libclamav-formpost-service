@@ -4,9 +4,9 @@ use axum::{
     Extension, Json,
 };
 use chrono::{SecondsFormat, Utc};
+use digest::Digest;
 use hyper::StatusCode;
 use serde::Serialize;
-use sha2::Digest;
 use std::{io::Write, sync::Arc};
 
 use crate::{app_config::AppConfig, av::AvContext, av_engine::AvScanResult};
@@ -74,12 +74,12 @@ pub async fn upload(
             .map_err(map_io_error_to_500)?;
         let mut size = 0;
         let mut crc32 = crc32fast::Hasher::new();
-        let mut md5 = md5::Context::new();
+        let mut md5 = md5::Md5::new();
         let mut sha256 = sha2::Sha256::new();
         while let Some(chunk) = field.chunk().await.map_err(map_mp_error_to_400)? {
             size += tmp.write(&chunk).map_err(map_io_error_to_500)? as u64;
             crc32.update(&chunk);
-            md5.consume(&chunk);
+            md5.update(&chunk);
             sha256.update(&chunk);
         }
         tmp.as_file().sync_data().map_err(map_io_error_to_500)?;
@@ -90,7 +90,7 @@ pub async fn upload(
                 &tmp,
                 size,
                 format!("{:08x?}", crc32.finalize()),
-                format!("{:032x?}", md5.compute()),
+                hex::encode(md5.finalize()),
                 hex::encode(sha256.finalize()),
             )
             .map_err(map_io_error_to_500)?,
