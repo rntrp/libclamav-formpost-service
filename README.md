@@ -30,7 +30,28 @@ docker run --rm -p 8000:8000 ghcr.io/rntrp/libclamav-formpost-service
 
 ## Usage
 * `/` leads to a simple HTML page with a form upload
-* `/upload` will accept files via POST `multipart/form-data` request
+* `/upload` will accept files via POST `multipart/form-data` request. Returns a JSON after upload and scan:
+```json
+{
+  "avVersion": "1.0.3",
+  "dbVersion": 27077,
+  "dbSignatureCount": 8677120,
+  "dbDate": "2023-10-30T07:39:55.000Z",
+  "results": [
+    {
+      "name": "eicar_com.zip",
+      "size": 184,
+      "crc32": "31db20d1",
+      "md5": "6ce6f415d8475545be5ba114f208b0ff",
+      "sha256": "2546dcffc5ad854d4ddc64fbf056871cd5a00f2471cb7a5bfd4ac23b6e9eedad",
+      "contentType": "application/zip",
+      "dateScanned": "2023-10-30T18:57:36.763Z",
+      "result": "VIRUS", // or CLEAN or WHITELISTED
+      "signature": "Win.Test.EICAR_HDB-1" // null if CLEAN
+    }
+  ]
+}
+```
 * `/health` is a simple health check endpoint
 * `/metrics` provides metrics in Prometheus format
 * `/shutdown` initiates graceful shutdown on a POST request
