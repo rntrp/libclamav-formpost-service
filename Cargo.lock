@@ -708,7 +708,7 @@ checksum = "a08173bc88b7955d1b3145aa561539096c421ac8debde8cbc3612ec635fee29b"
 
 [[package]]
 name = "libclamav-formpost-service"
-version = "1.0.3-v20231007"
+version = "1.0.3-v20231030"
 dependencies = [
  "axum",
  "axum-prometheus",
