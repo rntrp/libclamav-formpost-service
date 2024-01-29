@@ -13,7 +13,9 @@ use axum::{
 use axum_prometheus::PrometheusMetricLayer;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
-    main, select, signal,
+    main,
+    net::TcpListener,
+    select, signal,
     sync::{
         oneshot::{self, Receiver},
         Mutex,
@@ -48,13 +50,13 @@ async fn main() {
         .layer(Extension(Arc::new(Mutex::new(Some(shutdown_tx)))))
         .layer(DefaultBodyLimit::max(max_file_size))
         .layer(TraceLayer::new_for_http())
-        .layer(prometheus_layer)
-        .into_make_service();
+        .layer(prometheus_layer);
+
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    let listener = TcpListener::bind(addr).await.unwrap();
     tracing::info!("Bound to {}", addr);
 
-    axum::Server::bind(&addr)
-        .serve(app)
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal(shutdown_rx))
         .await
         .unwrap();
