@@ -13,8 +13,7 @@ RUN touch -a -m src/main.rs \
 
 FROM debian:bookworm-slim
 RUN apt update \
-    && apt install libclamav11 clamav-freshclam -y \
-    && freshclam
+    && apt install libclamav11 clamav-freshclam -y
 COPY --from=build /app/target/release/libclamav-formpost-service ./
 EXPOSE 8000
 ENV RUST_LOG=DEBUG
