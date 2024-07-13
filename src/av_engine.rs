@@ -28,6 +28,7 @@ pub enum ValType {
     STR,
 }
 
+#[allow(dead_code)] // low level libclamav types
 pub enum Val {
     U32(u32),
     U64(u64),
