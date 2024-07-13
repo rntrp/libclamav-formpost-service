@@ -12,8 +12,8 @@ config = {version = "0.14", features = ["toml", "yaml"]}
 crc32fast = "1.4.2"
 digest = "0.10"
 hex = "0.4"
-hyper = {version = "1.2", features = ["full"] }
-infer = "0.15"
+hyper = {version = "1.4", features = ["full"] }
+infer = "0.16"
 libc = "0.2"
 md-5 = "0.10"
 serde = {version = "1.0.204", features = ["derive"]}
