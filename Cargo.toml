@@ -1,6 +1,6 @@
 [package]
 name = "libclamav-formpost-service"
-version = "1.0.5-v20241020"
+version = "1.0.7-v20241122"
 edition = "2021"
 
 [dependencies]
@@ -16,13 +16,13 @@ hyper = {version = "1.5", features = ["full"] }
 infer = "0.16"
 libc = "0.2"
 md-5 = "0.10"
-serde = {version = "1.0.210", features = ["derive"]}
+serde = {version = "1.0.215", features = ["derive"]}
 sha2 = "0.10"
 tempfile = "3"
-tokio = {version = "1.40.0", features = ["full"]}
-tower-http = {version = "0.5", features = ["trace"]}
+tokio = {version = "1.41.1", features = ["full"]}
+tower-http = {version = "0.6", features = ["trace"]}
 tracing = "0.1"
-tracing-subscriber = {version = "0.3.18", features = ["env-filter"]}
+tracing-subscriber = {version = "0.3", features = ["env-filter"]}
 
 [build-dependencies]
 pkg-config = "0.3"
