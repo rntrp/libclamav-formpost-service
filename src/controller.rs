@@ -4,12 +4,14 @@ use axum::{
     Extension, Json,
 };
 use chrono::{SecondsFormat, Utc};
+use clamav_async::fmap::Fmap;
 use digest::Digest;
 use hyper::StatusCode;
 use serde::Serialize;
 use std::{io::Write, sync::Arc};
+use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
-use crate::{app_config::AppConfig, av::AvContext, av_engine::AvScanResult};
+use crate::{app_config::AppConfig, av::AvContext};
 
 #[derive(Serialize)]
 pub struct AvResponse {
@@ -93,6 +95,7 @@ pub async fn upload(
                 hex::encode(md5.finalize()),
                 hex::encode(sha256.finalize()),
             )
+            .await
             .map_err(map_io_error_to_500)?,
         );
     }
@@ -105,7 +108,7 @@ pub async fn upload(
     }))
 }
 
-fn map_result(
+async fn map_result(
     ctx: &AvContext,
     field: &Field<'_>,
     tmp: &tempfile::NamedTempFile,
@@ -117,31 +120,65 @@ fn map_result(
     let name = field.name().map(|f| f.to_string());
     let path = tmp.path().to_str().expect("temp path should be valid");
     let content_type = infer::get_from_path(path)?.map(|t| t.mime_type().to_string());
-    match ctx.engine.scan(path, &mut ctx.settings.to_owned()) {
-        Ok(r) => Ok(AvResult {
-            name,
-            size,
-            crc32,
-            md5,
-            sha256,
-            content_type,
-            date_scanned: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
-            result: match r {
-                AvScanResult::Clean => "CLEAN",
-                AvScanResult::Whitelisted => "WHITELISTED",
-                AvScanResult::Virus(_) => "VIRUS",
-            },
-            signature: match r {
-                AvScanResult::Clean => None,
-                AvScanResult::Whitelisted => None,
-                AvScanResult::Virus(sig) => Some(sig),
-            },
-        }),
-        Err(err) => Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("{err}"),
-        )),
+    let target = Fmap::from_file(std::fs::File::open(path)?, 0, size as usize, true);
+    let mut stream = ctx
+        .engine
+        .scan(
+            target,
+            Some(path),
+            clamav_async::scan_settings::ScanSettings::default(),
+        )
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, format!("{err}")))?;
+    let r = poll_result(&mut stream).await?;
+    return Ok(AvResult {
+        name,
+        size,
+        crc32,
+        md5,
+        sha256,
+        content_type,
+        date_scanned: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+        result: match_scan_result(&r),
+        signature: match_scan_signature(&r),
+    });
+}
+
+#[inline]
+fn match_scan_result(r: &clamav_async::engine::ScanResult) -> &'static str {
+    match r {
+        clamav_async::engine::ScanResult::Clean => "CLEAN",
+        clamav_async::engine::ScanResult::Whitelisted => "WHITELISTED",
+        clamav_async::engine::ScanResult::Virus(_) => "VIRUS",
     }
+}
+
+#[inline]
+fn match_scan_signature(r: &clamav_async::engine::ScanResult) -> Option<String> {
+    match r {
+        clamav_async::engine::ScanResult::Clean => None,
+        clamav_async::engine::ScanResult::Whitelisted => None,
+        clamav_async::engine::ScanResult::Virus(sig) => Some(sig.to_owned()),
+    }
+}
+
+#[inline]
+async fn poll_result(
+    rs: &mut ReceiverStream<clamav_async::engine::ScanEvent>,
+) -> Result<clamav_async::engine::ScanResult, std::io::Error> {
+    while let Some(event) = rs.next().await {
+        match event {
+            clamav_async::engine::ScanEvent::Result(r) => {
+                return r.map_err(|err| {
+                    std::io::Error::new(std::io::ErrorKind::Other, format!("{err}"))
+                })
+            }
+            _ => continue,
+        }
+    }
+    return Err(std::io::Error::new(
+        std::io::ErrorKind::UnexpectedEof,
+        "Could not retrieve scan result",
+    ));
 }
 
 #[inline]

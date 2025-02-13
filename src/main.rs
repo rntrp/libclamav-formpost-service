@@ -1,8 +1,5 @@
 mod app_config;
 mod av;
-mod av_bindings;
-mod av_engine;
-mod av_settings;
 mod controller;
 
 use axum::{
@@ -31,7 +28,7 @@ async fn main() {
     let cfg = app_config::load();
     tracing::info!("Loaded config\n{}", cfg);
 
-    let ctx = av::load_context();
+    let ctx = av::load_context().await;
     tracing::info!("Loaded context\n{}", ctx);
 
     let (max_file_size, port) = (cfg.max_file_size, cfg.port);
