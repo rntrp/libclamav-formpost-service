@@ -138,27 +138,17 @@ async fn map_result(
         sha256,
         content_type,
         date_scanned: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
-        result: match_scan_result(&r),
-        signature: match_scan_signature(&r),
+        result: match r {
+            clamav_async::engine::ScanResult::Clean => "CLEAN",
+            clamav_async::engine::ScanResult::Whitelisted => "WHITELISTED",
+            clamav_async::engine::ScanResult::Virus(_) => "VIRUS",
+        },
+        signature: match r {
+            clamav_async::engine::ScanResult::Clean => None,
+            clamav_async::engine::ScanResult::Whitelisted => None,
+            clamav_async::engine::ScanResult::Virus(sig) => Some(sig.to_owned()),
+        },
     });
-}
-
-#[inline]
-fn match_scan_result(r: &clamav_async::engine::ScanResult) -> &'static str {
-    match r {
-        clamav_async::engine::ScanResult::Clean => "CLEAN",
-        clamav_async::engine::ScanResult::Whitelisted => "WHITELISTED",
-        clamav_async::engine::ScanResult::Virus(_) => "VIRUS",
-    }
-}
-
-#[inline]
-fn match_scan_signature(r: &clamav_async::engine::ScanResult) -> Option<String> {
-    match r {
-        clamav_async::engine::ScanResult::Clean => None,
-        clamav_async::engine::ScanResult::Whitelisted => None,
-        clamav_async::engine::ScanResult::Virus(sig) => Some(sig.to_owned()),
-    }
 }
 
 #[inline]
