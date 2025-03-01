@@ -1,14 +1,14 @@
 [package]
 name = "libclamav-formpost-service"
 version = "1.0.7-v20250215"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 axum = {version = "0.8", features = ["multipart"]}
 axum-prometheus = "0.8"
 bitflags = "2"
 chrono = "0.4"
-clamav-async = "0.2"
+clamav-async = { git = "https://github.com/Cisco-Talos/clamav-async-rs.git", branch = "fix-mac-arm-i8-build-issue" }
 config = {version = "0.15", features = ["toml", "yaml"]}
 crc32fast = "1.4.2"
 digest = "0.10"
