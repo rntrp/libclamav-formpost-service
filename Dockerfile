@@ -12,9 +12,15 @@ RUN touch -a -m src/main.rs \
     && cargo build --release
 
 FROM debian:bookworm-slim
-RUN apt update \
-    && apt install libclamav11 clamav-freshclam -y
+RUN apt update -qq \
+    && apt install -y --no-install-recommends libclamav11 clamav-freshclam ca-certificates \
+    && apt autoremove --purge \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists /var/cache/apt/archives \
+    && mkdir -p /var/lib/clamav /var/log/clamav \
+    && chown -R 1001:1001 /var/lib/clamav /var/log/clamav
 COPY --from=build /app/target/release/libclamav-formpost-service ./
 EXPOSE 8000
 ENV RUST_LOG=DEBUG
+USER 1001
 CMD freshclam -V; freshclam; ./libclamav-formpost-service
