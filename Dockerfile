@@ -2,7 +2,7 @@ FROM rust:1-slim-bookworm AS build
 WORKDIR /app
 COPY Cargo.lock Cargo.toml build.rs ./
 RUN apt update \
-    && apt install pkg-config libclang-dev libclamav-dev -y \
+    && apt install -y pkg-config libclang-dev libclamav-dev \
     && mkdir src \
     && echo "fn main() {}" > src/main.rs \
     && cargo build --release \

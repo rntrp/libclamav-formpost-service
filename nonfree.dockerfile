@@ -2,7 +2,7 @@ FROM rust:1-slim-bookworm AS build
 WORKDIR /app
 COPY Cargo.lock Cargo.toml build.rs ./
 RUN apt update \
-    && apt install pkg-config libclang-dev libclamav-dev -y \
+    && apt install -y pkg-config libclang-dev libclamav-dev \
     && mkdir src \
     && echo "fn main() {}" > src/main.rs \
     && cargo build --release \
@@ -13,10 +13,15 @@ RUN touch -a -m src/main.rs \
 
 FROM debian:bookworm-slim
 RUN sed -i -e "s/ main/ main contrib non-free/g" /etc/apt/sources.list.d/debian.sources \
-    && apt update \
-    && apt install libclamav11 libclamunrar11 clamav-freshclam -y \
-    && freshclam
-COPY --from=build /app/target/release/rust-axum-clamav ./
+    && apt update -qq \
+    && apt install -y --no-install-recommends libclamav11 libclamunrar11 clamav-freshclam ca-certificates \
+    && apt autoremove --purge \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists /var/cache/apt/archives \
+    && mkdir -p /var/lib/clamav /var/log/clamav \
+    && chown -R 1001:1001 /var/lib/clamav /var/log/clamav
+COPY --from=build /app/target/release/libclamav-formpost-service ./
 EXPOSE 8000
 ENV RUST_LOG=DEBUG
-CMD freshclam -V; freshclam; ./rust-axum-clamav
+USER 1001
+CMD freshclam -V; freshclam; ./libclamav-formpost-service
