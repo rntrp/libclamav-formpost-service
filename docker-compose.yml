@@ -7,3 +7,10 @@ services:
     build: .
     ports:
       - "8000:8000"
+    volumes:
+      # Consider persisting ClamAV's database to minimize download time and traffic.
+      # Otherwise freshclam will download the whole bulk of CVD database at startup.
+      # mkdir -p local/lib local/log
+      # chown -R 1001:1001 local
+      - ./local/lib:/var/lib/clamav
+      - ./local/log:/var/log/clamav
