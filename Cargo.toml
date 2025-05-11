@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 axum = {version = "0.8", features = ["multipart"]}
 axum-prometheus = "0.8"
-bitflags = "2"
 chrono = "0.4"
 clamav-async = { git = "https://github.com/Cisco-Talos/clamav-async-rs.git", branch = "fix-mac-arm-i8-build-issue" }
 config = {version = "0.15", features = ["toml", "yaml"]}
@@ -18,10 +17,10 @@ hyper = {version = "1.6", features = ["full"] }
 infer = "0.19"
 libc = "0.2"
 md-5 = "0.10"
-serde = {version = "1.0.217", features = ["derive"]}
+serde = {version = "1.0.219", features = ["derive"]}
 sha2 = "0.10"
 tempfile = "3"
-tokio = {version = "1.43.0", features = ["full"]}
+tokio = {version = "1.45.0", features = ["full"]}
 tokio-stream = "0.1"
 tower-http = {version = "0.6", features = ["trace"]}
 tracing = "0.1"
