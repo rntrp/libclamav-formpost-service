@@ -3,6 +3,13 @@ name = "libclamav-formpost-service"
 version = "1.0.7-v20250302"
 edition = "2024"
 
+[profile.release-opt]
+inherits = "release"
+opt-level = 's'
+lto = true
+codegen-units = 1
+strip = true
+
 [dependencies]
 axum = {version = "0.8", features = ["multipart"]}
 axum-prometheus = "0.8"
