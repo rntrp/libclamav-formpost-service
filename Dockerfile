@@ -1,8 +1,7 @@
-FROM rust:1-slim-bookworm AS build
+FROM rust:1-slim-trixie AS build
 WORKDIR /app
 COPY Cargo.lock Cargo.toml build.rs ./
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list \
-    && apt update \
+RUN apt update \
     && apt install -y pkg-config libclang-dev libclamav-dev upx-ucl \
     && mkdir src \
     && echo "fn main() {}" > src/main.rs \
@@ -13,9 +12,9 @@ RUN touch -a -m src/main.rs \
     && cargo build --profile release-opt \
     && upx --best --lzma target/release-opt/libclamav-formpost-service
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 RUN apt update -qq \
-    && apt install -y --no-install-recommends libclamav11 clamav-freshclam ca-certificates \
+    && apt install -y --no-install-recommends libclamav12 clamav-freshclam ca-certificates \
     && apt autoremove --purge \
     && apt clean \
     && rm -rf /var/lib/apt/lists /var/cache/apt/archives \
