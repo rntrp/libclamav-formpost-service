@@ -24,4 +24,5 @@ COPY --from=build /app/target/release-opt/libclamav-formpost-service ./
 EXPOSE 8000
 ENV RUST_LOG=DEBUG
 USER 1001
+SHELL ["/bin/bash", "-c"]
 CMD freshclam -V; freshclam; ./libclamav-formpost-service

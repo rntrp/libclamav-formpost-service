@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 fn main() {
     let libclamav = pkg_config::Config::new()
-        .atleast_version("1.0.1")
+        .atleast_version("1.4.3")
         .probe("libclamav")
         .unwrap();
     let mut include_paths = libclamav.include_paths.clone();
