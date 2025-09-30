@@ -1,6 +1,6 @@
 [package]
 name = "libclamav-formpost-service"
-version = "1.0.7-v20250531"
+version = "1.4.3-v20250930"
 edition = "2024"
 
 [profile.release-opt]
@@ -12,7 +12,7 @@ strip = true
 
 [dependencies]
 axum = {version = "0.8", features = ["multipart"]}
-axum-prometheus = "0.8"
+axum-prometheus = "0.9"
 chrono = "0.4"
 clamav-async = "0.3.0"
 config = {version = "0.15", features = ["toml", "yaml"]}
@@ -20,14 +20,14 @@ crc32fast = "1.5.0"
 digest = "0.10"
 fmap = "0.8"
 hex = "0.4"
-hyper = {version = "1.6", features = ["full"] }
+hyper = {version = "1.7", features = ["full"] }
 infer = "0.19"
 libc = "0.2"
 md-5 = "0.10"
-serde = {version = "1.0.219", features = ["derive"]}
+serde = {version = "1.0.228", features = ["derive"]}
 sha2 = "0.10"
 tempfile = "3"
-tokio = {version = "1.46.1", features = ["full"]}
+tokio = {version = "1.47.1", features = ["full"]}
 tokio-stream = "0.1"
 tower-http = {version = "0.6", features = ["trace"]}
 tracing = "0.1"
