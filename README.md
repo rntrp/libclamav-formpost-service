@@ -2,19 +2,15 @@
 [![Docker Image](https://img.shields.io/docker/image-size/rntrp/libclamav-formpost-service/latest?logo=docker)](https://hub.docker.com/r/rntrp/libclamav-formpost-service)
 
 # libclamav-formpost-service
-Antivirus formpost microservice based on [libclamav](https://github.com/Cisco-Talos/clamav), written in Rust using [Axum](https://github.com/tokio-rs/axum).
-
-Parts of the code were taken from [clamav-rust](https://github.com/zaddach/clamav-rs) by Jonas Zaddach. Kudos to Jonas for FFI bindings and Settings implementation based on [bitflags](https://github.com/bitflags/bitflags).
-
-Build is currenty targeting only x86-64 Linux systems.
+Antivirus formpost microservice based on [async libclamav bindings](https://github.com/Cisco-Talos/clamav-async-rs), written in Rust using [Axum](https://github.com/tokio-rs/axum).
 
 ## Build
-The program is bound to ClamAV 1.0.x LTS releases. `libclamav` changes its API with later stable versions, so the latest LTS is used instead. Prerequisites are:
-* ClamAV 1.0.x header files and libs
+The program is bound to ClamAV 1.4.x LTS releases. `libclamav` changes its API with later stable versions, so the latest LTS is used instead. Prerequisites are:
+* ClamAV 1.4.x header files and libs
 * Those files must be available via `pkg-config`
 * Rust must be [installed](https://www.rust-lang.org/tools/install)
 
-Currently the most convenient option is to build it Debian Bookworm with [libclamav-dev](https://packages.debian.org/bookworm/libclamav-dev).
+Currently the most convenient option is to build it Debian Trixie with [libclamav-dev](https://packages.debian.org/trixie/libclamav-dev).
 
 Then just do `cargo build` or even `cargo run` on the repo root so that cargo automatically downloads all the dependencies and builds the binary.
 
