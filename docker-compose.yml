@@ -1,17 +1,29 @@
-version: "3.7"
 services:
-  web:
-    container_name: libclamav-formpost-service
-    image: libclamav-formpost-service:latest
+  freshclam:
+    image: clamav/clamav:1.4
+    environment:
+      - CLAMAV_NO_CLAMD=true
+      - CLAMAV_NO_FRESHCLAMD=true
+    command: freshclam -v
     restart: "no"
-    build: .
-    ports:
-      - "8000:8000"
     volumes:
       # Consider persisting ClamAV's database to minimize download time and traffic.
       # Otherwise freshclam will download the whole bulk of CVD database at startup.
       # mkdir -p local/lib local/log local/tmp
-      # chown -R 1001:1001 local
+      # chown -R 100:100 local
       - ./local/lib:/var/lib/clamav
       - ./local/log:/var/log/clamav
       - ./local/tmp:/var/tmp
+  svc:
+    image: libclamav-formpost-service:latest
+    restart: "no"
+    user: "100" # clamav uses uid 100
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./local/lib:/var/lib/clamav
+      - ./local/log:/var/log/clamav
+      - ./local/tmp:/var/tmp
+    depends_on:
+      freshclam:
+        condition: service_completed_successfully
