@@ -1,6 +1,6 @@
 [package]
 name = "libclamav-formpost-service"
-version = "1.4.3-v20250930"
+version = "1.4.3-v20251214"
 edition = "2024"
 
 [profile.release-opt]
