@@ -15,7 +15,7 @@ services:
       - ./local/log:/var/log/clamav
       - ./local/tmp:/var/tmp
   svc:
-    image: libclamav-formpost-service:latest
+    image: rntrp/libclamav-formpost-service:latest-nonfree
     restart: "no"
     user: "100" # clamav uses uid 100
     ports:
