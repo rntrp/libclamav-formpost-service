@@ -117,7 +117,7 @@ async fn map_result(
     md5: String,
     sha256: String,
 ) -> Result<AvResult, std::io::Error> {
-    let name = field.name().map(|f| f.to_string());
+    let name = field.file_name().or(field.name()).map(|f| f.to_string());
     let path = tmp.path().to_str().expect("temp path should be valid");
     let content_type = infer::get_from_path(path)?.map(|t| t.mime_type().to_string());
     let target = Fmap::from_file(std::fs::File::open(path)?, 0, size as usize, true);
