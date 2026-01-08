@@ -1,7 +1,7 @@
 use axum::{
-    extract::{multipart::Field, Multipart},
-    response::Html,
     Extension, Json,
+    extract::{Multipart, multipart::Field},
+    response::Html,
 };
 use chrono::{SecondsFormat, Utc};
 use clamav_async::fmap::Fmap;
@@ -9,7 +9,7 @@ use digest::Digest;
 use hyper::StatusCode;
 use serde::Serialize;
 use std::{io::Write, sync::Arc};
-use tokio_stream::{wrappers::ReceiverStream, StreamExt};
+use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 
 use crate::{app_config::AppConfig, av::AvContext};
 
@@ -86,7 +86,7 @@ pub async fn upload(
         }
         tmp.as_file().sync_data().map_err(map_io_error_to_500)?;
         results.push(
-            map_result(
+            scan(
                 &ctx,
                 &field,
                 &tmp,
@@ -108,7 +108,8 @@ pub async fn upload(
     }))
 }
 
-async fn map_result(
+#[inline]
+async fn scan(
     ctx: &AvContext,
     field: &Field<'_>,
     tmp: &tempfile::NamedTempFile,
@@ -121,14 +122,11 @@ async fn map_result(
     let path = tmp.path().to_str().expect("temp path should be valid");
     let content_type = infer::get_from_path(path)?.map(|t| t.mime_type().to_string());
     let target = Fmap::from_file(std::fs::File::open(path)?, 0, size as usize, true);
+    let settings = clamav_async::scan_settings::ScanSettings::default();
     let mut stream = ctx
         .engine
-        .scan(
-            target,
-            Some(path),
-            clamav_async::scan_settings::ScanSettings::default(),
-        )
-        .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, format!("{err}")))?;
+        .scan(target, Some(path), settings)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
     let r = poll_result(&mut stream).await?;
     return Ok(AvResult {
         name,
@@ -158,9 +156,7 @@ async fn poll_result(
     while let Some(event) = rs.next().await {
         match event {
             clamav_async::engine::ScanEvent::Result(r) => {
-                return r.map_err(|err| {
-                    std::io::Error::new(std::io::ErrorKind::Other, format!("{err}"))
-                })
+                return r.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err));
             }
             _ => continue,
         }
