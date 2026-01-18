@@ -16,10 +16,10 @@ axum-prometheus = "0.10"
 chrono = "0.4"
 clamav-async = "0.3.0"
 config = {version = "0.15", features = ["toml", "yaml"]}
-crc32fast = "1.5.0"
+const-hex = "1"
+crc-fast = "1"
 digest = "0.10"
 fmap = "0.8"
-hex = "0.4"
 hyper = {version = "1.8", features = ["full"] }
 infer = "0.19"
 libc = "0.2"

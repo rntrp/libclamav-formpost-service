@@ -8,7 +8,8 @@ use clamav_async::fmap::Fmap;
 use digest::Digest;
 use hyper::StatusCode;
 use serde::Serialize;
-use std::{io::Write, sync::Arc};
+use std::{io::Write, os::unix::fs::MetadataExt, sync::Arc};
+use tokio::{fs::File, io::AsyncReadExt};
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 
 use crate::{app_config::AppConfig, av::AvContext};
@@ -34,7 +35,7 @@ pub struct AvResult {
     md5: String,
     sha256: String,
     #[serde(rename = "contentType")]
-    content_type: Option<String>,
+    content_type: Option<&'static str>,
     #[serde(rename = "dateScanned")]
     date_scanned: String,
     result: &'static str,
@@ -75,7 +76,7 @@ pub async fn upload(
             .tempfile()
             .map_err(map_io_error_to_500)?;
         let mut size = 0;
-        let mut crc32 = crc32fast::Hasher::new();
+        let mut crc32 = crc_fast::Digest::new(crc_fast::CrcAlgorithm::Crc32IsoHdlc);
         let mut md5 = md5::Md5::new();
         let mut sha256 = sha2::Sha256::new();
         while let Some(chunk) = field.chunk().await.map_err(map_mp_error_to_400)? {
@@ -92,8 +93,8 @@ pub async fn upload(
                 &tmp,
                 size,
                 format!("{:08x?}", crc32.finalize()),
-                hex::encode(md5.finalize()),
-                hex::encode(sha256.finalize()),
+                const_hex::encode(md5.finalize()),
+                const_hex::encode(sha256.finalize()),
             )
             .await
             .map_err(map_io_error_to_500)?,
@@ -119,14 +120,17 @@ async fn scan(
     sha256: String,
 ) -> Result<AvResult, std::io::Error> {
     let name = field.file_name().or(field.name()).map(|f| f.to_string());
-    let path = tmp.path().to_str().expect("temp path should be valid");
-    let content_type = infer::get_from_path(path)?.map(|t| t.mime_type().to_string());
+    let path = tmp
+        .path()
+        .to_str()
+        .ok_or_else(|| std::io::Error::other("invalid path string"))?;
+    let content_type = detect_type(path).await?;
     let target = Fmap::from_file(std::fs::File::open(path)?, 0, size as usize, true);
     let settings = clamav_async::scan_settings::ScanSettings::default();
     let mut stream = ctx
         .engine
         .scan(target, Some(path), settings)
-        .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
+        .map_err(|err| std::io::Error::other(err))?;
     let r = poll_result(&mut stream).await?;
     return Ok(AvResult {
         name,
@@ -150,21 +154,28 @@ async fn scan(
 }
 
 #[inline]
+async fn detect_type(path: &str) -> Result<Option<&'static str>, std::io::Error> {
+    const LIMIT: u64 = 8192;
+    let file = File::open(path).await?;
+    let size = std::cmp::min(LIMIT, file.metadata().await?.size());
+    let mut buf = Vec::with_capacity(size as usize);
+    file.take(LIMIT).read_to_end(&mut buf).await?;
+    Ok(infer::get(buf.as_slice()).map(|t| t.mime_type()))
+}
+
+#[inline]
 async fn poll_result(
     rs: &mut ReceiverStream<clamav_async::engine::ScanEvent>,
 ) -> Result<clamav_async::engine::ScanResult, std::io::Error> {
     while let Some(event) = rs.next().await {
         match event {
             clamav_async::engine::ScanEvent::Result(r) => {
-                return r.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err));
+                return r.map_err(|err| std::io::Error::other(err));
             }
             _ => continue,
         }
     }
-    return Err(std::io::Error::new(
-        std::io::ErrorKind::UnexpectedEof,
-        "Could not retrieve scan result",
-    ));
+    return Err(std::io::Error::other("Could not retrieve scan result"));
 }
 
 #[inline]
