@@ -3,9 +3,9 @@ mod av;
 mod controller;
 
 use axum::{
+    Extension, Router,
     extract::DefaultBodyLimit,
     routing::{get, post},
-    Extension, Router,
 };
 use axum_prometheus::PrometheusMetricLayer;
 use std::{net::SocketAddr, sync::Arc};
@@ -14,8 +14,8 @@ use tokio::{
     net::TcpListener,
     select, signal,
     sync::{
-        oneshot::{self, Receiver},
         Mutex,
+        oneshot::{self, Receiver},
     },
 };
 use tower_http::trace::TraceLayer;
@@ -59,6 +59,7 @@ async fn main() {
         .unwrap();
 }
 
+#[inline]
 async fn shutdown_signal(shutdown_rx: Receiver<()>) {
     let ctrl_c = async {
         signal::ctrl_c()
@@ -75,5 +76,87 @@ async fn shutdown_signal(shutdown_rx: Receiver<()>) {
         _ = ctrl_c => {},
         _ = terminate => {},
         _ = shutdown_rx => {},
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Bytes;
+    use axum_test::multipart::{MultipartForm, Part};
+    use axum_test::{TestServer, expect_json};
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn upload_eicar_virus() {
+        let cfg = app_config::load();
+        let ctx = av::load_context().await;
+        let app = Router::new()
+            .route("/upload", post(controller::upload))
+            .layer(Extension(Arc::new(cfg)))
+            .layer(Extension(Arc::new(ctx)));
+        let srv = TestServer::builder().mock_transport().build(app).unwrap();
+        let eicar =
+            Bytes::from("X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*");
+        let part = Part::bytes(eicar).file_name("eicar.com");
+        let form = MultipartForm::new().add_part("name", part);
+        let resp = srv.post("/upload").multipart(form).await;
+        resp.assert_status_ok();
+        resp.assert_json(&json!({
+            "avVersion": expect_json::string(),
+            "dbVersion": expect_json::integer(),
+            "dbSignatureCount": expect_json::integer(),
+            "dbDate": expect_json::iso_date_time(),
+            "results": [{
+                "name": "eicar.com",
+                "size": 68,
+                "crc32": "6851cf3c",
+                "md5": "44d88612fea8a8f36de82e1278abb02f",
+                "sha256": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+                "contentType": null,
+                "dateScanned": expect_json::iso_date_time(),
+                "result": "VIRUS",
+                "signature": expect_json::string(),
+            }]
+        }));
+    }
+
+    #[tokio::test]
+    async fn upload_minpdf_clean() {
+        let cfg = app_config::load();
+        let ctx = av::load_context().await;
+        let app = Router::new()
+            .route("/upload", post(controller::upload))
+            .layer(Extension(Arc::new(cfg)))
+            .layer(Extension(Arc::new(ctx)));
+        let srv = TestServer::builder().mock_transport().build(app).unwrap();
+        let pdf = Bytes::from(concat!(
+            "%PDF-1.\n",
+            "1 0 obj<</Pages 2 0 R>>endobj\n",
+            "2 0 obj<</Kids[3 0 R]/Count 1>>endobj\n",
+            "3 0 obj<</Parent 2 0 R>>endobj\n",
+            "trailer <</Root 1 0 R>>",
+        ));
+        let part = Part::bytes(pdf).file_name("min.pdf");
+        let form = MultipartForm::new().add_part("name", part);
+        let resp = srv.post("/upload").multipart(form).await;
+        resp.assert_status_ok();
+        resp.assert_json(&json!({
+            "avVersion": expect_json::string(),
+            "dbVersion": expect_json::integer(),
+            "dbSignatureCount": expect_json::integer(),
+            "dbDate": expect_json::iso_date_time(),
+            "results": [{
+                "name": "min.pdf",
+                "size": 130,
+                "crc32": "d703e9d5",
+                "md5": "f4e486fddb1f3d9d438926f053d53c6a",
+                "sha256": "d18981866d1600d0f39eab26745e87335a1ee95a6fe5c82748d6d93604a8aa32",
+                "contentType": "application/pdf",
+                "dateScanned": expect_json::iso_date_time(),
+                "result": "CLEAN",
+                "signature": null,
+            }]
+        }));
     }
 }
