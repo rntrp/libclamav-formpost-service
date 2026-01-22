@@ -193,11 +193,9 @@ mod tests {
     #[tokio::test]
     async fn index_html() {
         let cfg = app_config::load();
-        let ctx = av::load_context().await;
         let app = Router::new()
             .route("/index", get(controller::index_html))
-            .layer(Extension(Arc::new(cfg)))
-            .layer(Extension(Arc::new(ctx)));
+            .layer(Extension(Arc::new(cfg)));
         let srv = TestServer::builder().mock_transport().build(app).unwrap();
         let resp = srv.get("/index").await;
         resp.assert_status_ok();
