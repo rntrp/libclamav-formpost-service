@@ -102,6 +102,7 @@ mod tests {
         let form = MultipartForm::new().add_part("name", part);
         let resp = srv.post("/upload").multipart(form).await;
         resp.assert_status_ok();
+        resp.assert_header("Content-Type", "application/json");
         resp.assert_json(&json!({
             "avVersion": expect_json::string(),
             "dbVersion": expect_json::integer(),
@@ -141,6 +142,7 @@ mod tests {
         let form = MultipartForm::new().add_part("name", part);
         let resp = srv.post("/upload").multipart(form).await;
         resp.assert_status_ok();
+        resp.assert_header("Content-Type", "application/json");
         resp.assert_json(&json!({
             "avVersion": expect_json::string(),
             "dbVersion": expect_json::integer(),
@@ -158,5 +160,78 @@ mod tests {
                 "signature": null,
             }]
         }));
+    }
+
+    #[tokio::test]
+    async fn upload_multiple_files_multiple_results() {
+        let cfg = app_config::load();
+        let ctx = av::load_context().await;
+        let app = Router::new()
+            .route("/upload", post(controller::upload))
+            .layer(Extension(Arc::new(cfg)))
+            .layer(Extension(Arc::new(ctx)));
+        let srv = TestServer::builder().mock_transport().build(app).unwrap();
+        let part1 = Part::bytes(Bytes::from("Hello world!")).file_name("helloworld.txt");
+        let part2 = Part::bytes(Bytes::from("Hallo Welt!")).file_name("hallowelt.txt");
+        let part3 = Part::bytes(Bytes::from("Привет мир!")).file_name("приветмир.txt");
+        let form = MultipartForm::new()
+            .add_part("name1", part1)
+            .add_part("name2", part2)
+            .add_part("name2", part3);
+        let resp = srv.post("/upload").multipart(form).await;
+        resp.assert_status_ok();
+        resp.assert_header("Content-Type", "application/json");
+        resp.assert_json(&json!({
+            "avVersion": expect_json::string(),
+            "dbVersion": expect_json::integer(),
+            "dbSignatureCount": expect_json::integer(),
+            "dbDate": expect_json::iso_date_time(),
+            "results": expect_json::array().len(3),
+        }));
+    }
+
+    #[tokio::test]
+    async fn index_html() {
+        let cfg = app_config::load();
+        let ctx = av::load_context().await;
+        let app = Router::new()
+            .route("/index", get(controller::index_html))
+            .layer(Extension(Arc::new(cfg)))
+            .layer(Extension(Arc::new(ctx)));
+        let srv = TestServer::builder().mock_transport().build(app).unwrap();
+        let resp = srv.get("/index").await;
+        resp.assert_status_ok();
+        resp.assert_header("Content-Type", "text/html; charset=utf-8");
+        resp.assert_text_contains("<!DOCTYPE html>");
+    }
+
+    #[tokio::test]
+    async fn shutdown_disabled_by_default_404() {
+        let cfg = app_config::load();
+        let (shutdown_tx, _) = oneshot::channel::<()>();
+        let app = Router::new()
+            .route("/shutdown", post(controller::shutdown))
+            .layer(Extension(Arc::new(cfg)))
+            .layer(Extension(Arc::new(Mutex::new(Some(shutdown_tx)))));
+        let srv = TestServer::builder().mock_transport().build(app).unwrap();
+        let resp = srv.post("/shutdown").await;
+        resp.assert_status_not_found();
+    }
+
+    #[tokio::test]
+    async fn shutdown_enabled_204() {
+        let cfg = app_config::AppConfig {
+            enable_shutdown_endpoint: true,
+            max_file_size: 42,
+            port: 8000,
+        };
+        let (shutdown_tx, _) = oneshot::channel::<()>();
+        let app = Router::new()
+            .route("/shutdown", post(controller::shutdown))
+            .layer(Extension(Arc::new(cfg)))
+            .layer(Extension(Arc::new(Mutex::new(Some(shutdown_tx)))));
+        let srv = TestServer::builder().mock_transport().build(app).unwrap();
+        let resp = srv.post("/shutdown").await;
+        resp.assert_status_success();
     }
 }
