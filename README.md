@@ -10,7 +10,7 @@ The program requires the `libclamav` dynamic library at runtime and the correspo
 * Those files must be available via `pkg-config`, i.e. `/usr/lib**/pkgconfig/libclamav.pc` must be present
 * Rust must be [installed](https://www.rust-lang.org/tools/install)
 
-The most convenient option is to install `libclamav` development files from official package sources:
+The most convenient option is to install `libclamav` development files from the official package sources:
 * __Debian Trixie__: [libclamav-dev](https://packages.debian.org/trixie/libclamav-dev)
 * __Ubuntu Noble__: [libclamav-dev](https://launchpad.net/ubuntu/noble/+package/libclamav-dev)
 * __Arch Linux__: [clamav](https://archlinux.org/packages/extra/x86_64/clamav/)
@@ -36,7 +36,7 @@ docker run --rm -p 8000:8000 ghcr.io/rntrp/libclamav-formpost-service
 ```
 
 ## Usage
-* `/` leads to a simple HTML page with a form upload
+* `/` leads to a simple HTML page with a form upload. Aliases
 * `/health` is a simple health check endpoint
 * `/metrics` provides metrics in Prometheus format
 * `/shutdown` initiates graceful shutdown on a POST request (disabled by default)
@@ -62,3 +62,25 @@ docker run --rm -p 8000:8000 ghcr.io/rntrp/libclamav-formpost-service
   ]
 }
 ```
+
+## FAQ
+
+**Q: Are scanned files loaded completely into memory?**
+
+**A:** No, uploads are transferred into temp files in a streaming manner. `libclamav` then uses memory mapping on temp files when scanning for malware. Unless the temp directory is located on a RAM drive, an uploaded file is never entirely loaded into memory. Temp files are deleted automatically after the request completes.
+
+
+**Q: Where are the temp files stored?**
+
+**A:** Temp files are written to the OS temp directory. This directory is designated by the `TMPDIR` environment variable which resolves to `/tmp` on Linux by default. Also make sure to provide enough disk space to handle bigger files in parallel requests.
+
+
+**Q: I am getting the following log message at startup. Is it normal?**
+```
+LibClamAV Warning: **************************************************
+LibClamAV Warning: ***  The virus database is older than 7 days!  ***
+LibClamAV Warning: ***   Please update it as soon as possible.    ***
+LibClamAV Warning: **************************************************
+```
+
+**A:** The application itself does not update the virus database. The most conventional way to update the database is to run `freshclam` periodically. When using Docker, an init container with `freshclam` to update the database is a good choice. Alternatively, you can still manage and copy the CVD files manually: database files are located at `/var/lib/clamav`.
