@@ -1,6 +1,9 @@
 [![Release](https://img.shields.io/github/v/release/rntrp/libclamav-formpost-service?include_prereleases)](https://github.com/rntrp/libclamav-formpost-service/releases)
 [![Docker Image](https://img.shields.io/docker/image-size/rntrp/libclamav-formpost-service/latest?logo=docker)](https://hub.docker.com/r/rntrp/libclamav-formpost-service)
 
+> [!WARNING]
+> This repository is archived. Further development under the new name [Reefspect](https://github.com/rntrp/reefspect).
+
 # libclamav-formpost-service 🪸
 Antivirus formpost microservice based on [async libclamav bindings](https://github.com/Cisco-Talos/clamav-async-rs), written in Rust using [Axum](https://github.com/tokio-rs/axum).
 
